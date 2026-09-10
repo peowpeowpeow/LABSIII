@@ -1,0 +1,8 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/donors
+method: POST
+body:
+  type: json
+  content: '{"name": "test"}'
+order: 4501225279612627

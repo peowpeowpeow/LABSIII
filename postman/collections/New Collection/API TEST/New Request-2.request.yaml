@@ -1,0 +1,8 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/donors/3
+method: GET
+body:
+  type: json
+  content: ""
+order: 4239059020951946

@@ -1,0 +1,16 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/donors/1
+method: DELETE
+body:
+  type: json
+  content: "{\r
+
+    \    \"fullName\": \"Петров Петр\",\r
+
+    \    \"bloodType\": \"B-\",\r
+
+    \    \"phone\": \"+375295678901\"\r
+
+    }"
+order: 4502141469756056

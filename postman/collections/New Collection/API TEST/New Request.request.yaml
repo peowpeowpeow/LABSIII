@@ -1,4 +1,15 @@
 $kind: http-request
-url: ""
-method: GET
-order: 1788424093282
+url: http://localhost:3000/donors
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"fullName\": \"Цупа Иван\",\r
+
+    \    \"bloodType\": \"A+\",\r
+
+    \    \"phone\": \"+375291234567\"\r
+
+    }"
+order: 4018232318154657
