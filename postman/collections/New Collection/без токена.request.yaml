@@ -1,0 +1,6 @@
+$kind: http-request
+url: http://localhost:3000/profile
+method: GET
+headers:
+  Authorization: ""
+order: 4328811814428138

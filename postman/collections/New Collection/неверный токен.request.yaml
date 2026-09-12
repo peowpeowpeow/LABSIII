@@ -1,0 +1,6 @@
+$kind: http-request
+url: http://localhost:3000/profile
+method: GET
+headers:
+  Authorization: Bearer wrrrr
+order: 4349566563585110

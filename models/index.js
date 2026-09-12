@@ -1,5 +1,5 @@
 
-require('dotenv').config();
+require('dotenv').config({ path: './blood_donation.env' });
 
 
 'use strict';

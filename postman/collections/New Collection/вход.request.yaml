@@ -1,0 +1,15 @@
+$kind: http-request
+url: http://localhost:3000/auth/login
+method: POST
+body:
+  type: json
+  content: "\r
+
+    {\r
+
+    \    \"email\": \"donor@mail.com\",\r
+
+    \    \"password\": \"Password123\"\r
+
+    }\r\n"
+order: 3727765339678604

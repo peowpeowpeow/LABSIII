@@ -1,13 +1,21 @@
-
-require('dotenv').config();
+require('dotenv').config({ path: './blood_donation.env' });
 const express = require('express');
 const { Donor } = require('./models');
+const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profile');
 
 const app = express();
 app.use(express.json());
 
 const PORT = 3000;
-// GET /donors - получить всех
+
+
+app.use('/auth', authRoutes);
+
+
+app.use('/profile', profileRoutes);
+
+
 app.get('/donors', async (req, res) => {
     try {
         const donors = await Donor.findAll();
@@ -17,24 +25,20 @@ app.get('/donors', async (req, res) => {
     }
 });
 
-// GET /donors/:id - получить одного
 app.get('/donors/:id', async (req, res) => {
     try {
         const donor = await Donor.findByPk(req.params.id);
-        if (!donor) {
-            return res.status(404).json({ error: 'Элемент не найден' });
-        }
+        if (!donor) return res.status(404).json({ error: 'Элемент не найден' });
         res.json(donor);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST /donors - добавить
 app.post('/donors', async (req, res) => {
     try {
         const { fullName, bloodType, phone } = req.body;
-        if (!fullName ||!bloodType ||!phone) {
+        if (!fullName || !bloodType || !phone) {
             return res.status(400).json({ error: 'Неверные данные запроса' });
         }
         const newDonor = await Donor.create(req.body);
@@ -44,13 +48,10 @@ app.post('/donors', async (req, res) => {
     }
 });
 
-// PUT /donors/:id - обновить
 app.put('/donors/:id', async (req, res) => {
     try {
         const donor = await Donor.findByPk(req.params.id);
-        if (!donor) {
-            return res.status(404).json({ error: 'Элемент не найден' });
-        }
+        if (!donor) return res.status(404).json({ error: 'Элемент не найден' });
         await donor.update(req.body);
         res.json(donor);
     } catch (err) {
@@ -58,13 +59,10 @@ app.put('/donors/:id', async (req, res) => {
     }
 });
 
-// DELETE /donors/:id - удалить
 app.delete('/donors/:id', async (req, res) => {
     try {
         const donor = await Donor.findByPk(req.params.id);
-        if (!donor) {
-            return res.status(404).json({ error: 'Элемент не найден' });
-        }
+        if (!donor) return res.status(404).json({ error: 'Элемент не найден' });
         await donor.destroy();
         res.status(204).send();
     } catch (err) {
@@ -72,12 +70,10 @@ app.delete('/donors/:id', async (req, res) => {
     }
 });
 
-// Обработка несуществующих маршрутов
 app.use((req, res) => {
     res.status(404).json({ error: 'Маршрут не найден' });
 });
 
-// Глобальный обработчик ошибок
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
