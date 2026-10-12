@@ -1,0 +1,77 @@
+<%- include('partials/header') %>
+
+<a class="back" href="<%= link('/') %>">&larr; Ко всем записям</a>
+
+<!-- Заголовок записи -->
+<section class="page-head">
+  <div>
+    <h1>Запись №<%= donation.id %></h1>
+    <p class="muted">Создана: <span class="mono"><%= formatDateTime(donation.createdAt) %></span></p>
+  </div>
+  <span class="badge badge--<%= donation.status %> badge--lg"><%= STATUSES[donation.status] %></span>
+</section>
+
+<div class="grid-2">
+  <!-- Данные донора -->
+  <section class="card">
+    <h2>Донор</h2>
+    <dl class="details">
+      <dt>ФИО</dt><dd><%= donation.donorName %></dd>
+      <dt>Возраст</dt><dd><%= donation.age %> лет</dd>
+      <dt>Вес</dt><dd><%= donation.weight %> кг</dd>
+      <dt>Группа крови</dt><dd><span class="blood"><%= BLOOD_GROUPS[donation.bloodGroup] %> <%= RH_FACTORS[donation.rhFactor] %></span></dd>
+      <dt>Телефон</dt><dd><%= donation.phone %></dd>
+      <dt>E-mail</dt><dd><%= donation.email || '—' %></dd>
+    </dl>
+  </section>
+
+  <!-- Данные визита -->
+  <section class="card">
+    <h2>Визит</h2>
+    <dl class="details">
+      <dt>Вид донации</dt><dd><%= DONATION_TYPES[donation.donationType].label %></dd>
+      <dt>Объём</dt><dd><%= donation.volume %> мл</dd>
+      <dt>Центр</dt><dd><%= CENTERS[donation.center] %></dd>
+      <dt>Дата и время</dt><dd><%= formatDate(donation.donationDate) %>, <%= donation.donationTime %></dd>
+      <dt>Комментарий</dt><dd class="pre"><%= donation.comment || '—' %></dd>
+    </dl>
+  </section>
+</div>
+
+<!-- Уведомления -->
+<section class="card">
+  <h2>Уведомления</h2>
+  <% const reminder = reminderText(donation); %>
+  <% if (reminder) { %>
+    <p>Напоминание о визите: <strong><%= reminder %></strong>.</p>
+  <% } else if (donation.status === 'planned') { %>
+    <p class="muted">Донор отказался от напоминаний.</p>
+  <% } else { %>
+    <p class="muted">Напоминание не требуется: запись в статусе «<%= STATUSES[donation.status] %>».</p>
+  <% } %>
+  <% if (donation.status === 'done') { %>
+    <p>Следующая донация вида «<%= DONATION_TYPES[donation.donationType].label %>» возможна не ранее
+      <strong><%= formatDate(nextAllowedDate(donation)) %></strong>
+      (интервал <%= DONATION_TYPES[donation.donationType].intervalDays %> дней).</p>
+  <% } %>
+</section>
+
+<!-- История донаций этого донора -->
+<section class="card">
+  <h2>История донаций донора</h2>
+  <% if (history.length === 0) { %>
+    <p class="muted">Других записей у донора нет.</p>
+  <% } else { %>
+    <ul class="history">
+      <% history.forEach((h) => { %>
+        <li>
+          <a href="<%= link('/item/' + h.id) %>">№<%= h.id %></a>
+          · <%= formatDate(h.donationDate) %> · <%= DONATION_TYPES[h.donationType].label %>, <%= h.volume %> мл
+          · <span class="badge badge--<%= h.status %>"><%= STATUSES[h.status] %></span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

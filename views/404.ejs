@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+
+<!-- Страница ошибки 404 -->
+<section class="error-page">
+  <div class="error-page__code">404</div>
+  <h1>Страница не найдена</h1>
+  <p><%= message || 'Запрошенный адрес не обрабатывается ни одним маршрутом приложения.' %></p>
+  <p class="muted">Запрошенный адрес: <span class="mono"><%= requestedUrl %></span></p>
+
+  <div class="form__actions form__actions--center">
+    <a class="btn btn--primary" href="<%= link('/') %>">На главную</a>
+    <a class="btn btn--ghost" href="<%= link('/add') %>">Записаться на донацию</a>
+    <a class="btn btn--ghost" href="<%= link('/error-500') %>">Открыть страницу 500</a>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

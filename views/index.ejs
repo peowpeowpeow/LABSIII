@@ -1,0 +1,69 @@
+<%- include('partials/header') %>
+
+<!-- Сообщение об успешной записи -->
+<% if (created) { %>
+  <div class="alert alert--success">
+    Запись №<%= created.id %> создана: <%= created.donorName %>, <%= formatDate(created.donationDate) %> в <%= created.donationTime %>.
+    <a href="<%= link('/item/' + created.id) %>">Открыть запись</a>
+  </div>
+<% } %>
+
+<!-- Заголовок и статистика -->
+<section class="page-head">
+  <div>
+    <h1>Записи на донацию</h1>
+    <p class="muted">Запись к центрам трансфузиологии, напоминания и история донаций.</p>
+  </div>
+  <a class="btn btn--primary" href="<%= link('/add') %>">+ Записаться на донацию</a>
+</section>
+
+<section class="stats">
+  <div class="stat"><span class="stat__value"><%= stats.total %></span><span class="stat__label">всего записей</span></div>
+  <div class="stat"><span class="stat__value"><%= stats.planned %></span><span class="stat__label">запланировано</span></div>
+  <div class="stat"><span class="stat__value"><%= stats.done %></span><span class="stat__label">выполнено</span></div>
+  <div class="stat"><span class="stat__value"><%= (stats.volume / 1000).toFixed(2) %> л</span><span class="stat__label">сдано крови и компонентов</span></div>
+</section>
+
+<!-- Фильтр по статусу -->
+<nav class="filters">
+  <a class="chip <%= !status ? 'is-active' : '' %>" href="<%= link('/') %>">Все</a>
+  <% Object.entries(STATUSES).forEach(([key, label]) => { %>
+    <a class="chip <%= status === key ? 'is-active' : '' %>" href="<%= link('/?status=' + key) %>"><%= label %></a>
+  <% }) %>
+</nav>
+
+<!-- Таблица записей -->
+<% if (items.length === 0) { %>
+  <div class="empty">Записей с выбранным статусом нет.</div>
+<% } else { %>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Донор</th>
+          <th>Группа</th>
+          <th>Вид донации</th>
+          <th>Дата и время</th>
+          <th>Статус</th>
+          <th>Время создания записи</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% items.forEach((d) => { %>
+          <tr>
+            <td><%= d.id %></td>
+            <td><a href="<%= link('/item/' + d.id) %>"><%= d.donorName %></a></td>
+            <td><span class="blood"><%= BLOOD_GROUPS[d.bloodGroup] %> <%= RH_FACTORS[d.rhFactor] %></span></td>
+            <td><%= DONATION_TYPES[d.donationType].label %>, <%= d.volume %> мл</td>
+            <td><%= formatDate(d.donationDate) %>, <%= d.donationTime %></td>
+            <td><span class="badge badge--<%= d.status %>"><%= STATUSES[d.status] %></span></td>
+            <td class="mono"><%= formatDateTime(d.createdAt) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('partials/footer') %>

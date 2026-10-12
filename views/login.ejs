@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+
+<!-- Имитация входа: доступ даёт параметр ?auth=1 -->
+<section class="center-box card">
+  <h1>Требуется авторизация</h1>
+  <p>Страница <span class="mono"><%= returnTo %></span> доступна только авторизованным донорам.</p>
+  <p class="muted">Авторизация имитируется: middleware проверяет параметр запроса <span class="mono">?auth=1</span>.
+    Без него пользователь считается гостем.</p>
+  <div class="form__actions">
+    <a class="btn btn--primary" href="<%= returnTo %>?auth=1">Войти как донор</a>
+    <a class="btn btn--ghost" href="/">Остаться гостем</a>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

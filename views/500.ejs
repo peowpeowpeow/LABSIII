@@ -1,0 +1,42 @@
+<%- include('partials/header') %>
+
+<!-- Страница ошибки 500 -->
+<section class="error-page">
+  <div class="error-page__code"><%= status %></div>
+  <h1>Внутренняя ошибка сервера</h1>
+  <p>При обработке запроса произошла непредвиденная ошибка. Данные о записях не изменились, ошибка записана в журнал сервера.</p>
+
+  <div class="card error-info">
+    <dl class="details">
+      <dt>Код ошибки</dt><dd class="mono"><%= errorId %></dd>
+      <dt>Время</dt><dd class="mono"><%= formatDateTime(occurredAt) %></dd>
+      <dt>Запрос</dt><dd class="mono"><%= method %> <%= requestedUrl %></dd>
+      <dt>Тип</dt><dd class="mono"><%= errorName %></dd>
+      <dt>Сообщение</dt><dd><%= errorMessage %></dd>
+    </dl>
+    <% if (stack) { %>
+      <details>
+        <summary>Стек вызовов (только в режиме разработки)</summary>
+        <pre class="stack"><%= stack %></pre>
+      </details>
+    <% } %>
+  </div>
+
+  <div class="card error-info">
+    <h2>Что произошло</h2>
+    <ul class="list">
+      <li>Обработчик маршрута выбросил исключение или вернул отклонённый промис.</li>
+      <li>Express передал ошибку в middleware обработки ошибок с четырьмя параметрами <span class="mono">(err, req, res, next)</span>.</li>
+      <li>Middleware записал ошибку в консоль с кодом <span class="mono"><%= errorId %></span>, установил статус <%= status %> и отрендерил этот шаблон.</li>
+    </ul>
+  </div>
+
+  <div class="form__actions form__actions--center">
+    <a class="btn btn--primary" href="<%= link('/') %>">На главную</a>
+    <a class="btn btn--ghost" href="<%= link(requestedUrl.split('?')[0]) %>">Повторить запрос</a>
+    <a class="btn btn--ghost" href="<%= link('/error-500-async') %>">Асинхронная ошибка 500</a>
+    <a class="btn btn--ghost" href="<%= link('/no-such-page') %>">Открыть страницу 404</a>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

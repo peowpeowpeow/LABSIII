@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — ДонорКровь</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <a class="brand" href="<%= link('/') %>"><span class="brand__drop">&#9679;</span> ДонорКровь</a>
+
+      <nav class="nav">
+        <a class="nav__link <%= currentPath === '/' ? 'is-active' : '' %>" href="<%= link('/') %>">Записи</a>
+        <a class="nav__link <%= currentPath === '/add' ? 'is-active' : '' %>" href="<%= link('/add') %>">Записаться</a>
+        <a class="nav__link nav__link--demo" href="<%= link('/no-such-page') %>">Страница 404</a>
+        <a class="nav__link nav__link--demo" href="<%= link('/error-500') %>">Ошибка 500</a>
+      </nav>
+
+      <div class="user">
+        <% if (user.isAuthenticated) { %>
+          <span class="user__name"><%= user.name %></span>
+          <a class="btn btn--ghost btn--sm" href="<%= currentPath %>">Выйти</a>
+        <% } else { %>
+          <span class="user__name"><%= user.name %></span>
+          <a class="btn btn--primary btn--sm" href="/login?returnTo=<%= encodeURIComponent(currentPath) %>">Войти</a>
+        <% } %>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main">

@@ -1,0 +1,178 @@
+<%- include('partials/header') %>
+
+<% const err = (f) => errors[f] ? 'field--error' : ''; %>
+
+<a class="back" href="<%= link('/') %>">&larr; Ко всем записям</a>
+
+<section class="page-head">
+  <div>
+    <h1>Запись на донацию</h1>
+    <p class="muted">Все поля, кроме e-mail и комментария, обязательны. Данные проверяются на сервере.</p>
+  </div>
+</section>
+
+<!-- Сводка ошибок валидации -->
+<% if (Object.keys(errors).length > 0) { %>
+  <div class="alert alert--error">
+    <strong>Исправьте ошибки (<%= Object.keys(errors).length %>):</strong>
+    <ul>
+      <% Object.values(errors).forEach((message) => { %><li><%= message %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<!-- Форма записи (novalidate — чтобы продемонстрировать серверную проверку) -->
+<form class="form card" method="POST" action="<%= link('/add') %>" novalidate>
+
+  <fieldset>
+    <legend>Донор</legend>
+
+    <div class="field <%= err('donorName') %>">
+      <label for="donorName">ФИО донора *</label>
+      <input id="donorName" name="donorName" type="text" value="<%= values.donorName %>"
+             data-max="<%= limits.donorName.max %>" placeholder="Иванов Иван Иванович" autocomplete="name">
+      <div class="hint">От <%= limits.donorName.min %> до <%= limits.donorName.max %> символов, минимум два слова, только буквы. <span class="counter"></span></div>
+      <% if (errors.donorName) { %><div class="error"><%= errors.donorName %></div><% } %>
+    </div>
+
+    <div class="row">
+      <div class="field <%= err('age') %>">
+        <label for="age">Возраст, лет *</label>
+        <input id="age" name="age" type="number" min="0" step="1" value="<%= values.age %>" placeholder="18–65">
+        <div class="hint">Целое число ≥ 0, донорство — с <%= limits.age.min %> до <%= limits.age.max %> лет.</div>
+        <% if (errors.age) { %><div class="error"><%= errors.age %></div><% } %>
+      </div>
+
+      <div class="field <%= err('weight') %>">
+        <label for="weight">Вес, кг *</label>
+        <input id="weight" name="weight" type="text" inputmode="decimal" value="<%= values.weight %>" placeholder="например, 72,5">
+        <div class="hint">Число ≥ 0, от <%= limits.weight.min %> до <%= limits.weight.max %> кг.</div>
+        <% if (errors.weight) { %><div class="error"><%= errors.weight %></div><% } %>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field <%= err('bloodGroup') %>">
+        <label for="bloodGroup">Группа крови *</label>
+        <select id="bloodGroup" name="bloodGroup">
+          <option value="">— выберите —</option>
+          <% Object.entries(BLOOD_GROUPS).forEach(([key, label]) => { %>
+            <option value="<%= key %>" <%= values.bloodGroup === key ? 'selected' : '' %>><%= label %></option>
+          <% }) %>
+        </select>
+        <% if (errors.bloodGroup) { %><div class="error"><%= errors.bloodGroup %></div><% } %>
+      </div>
+
+      <div class="field <%= err('rhFactor') %>">
+        <span class="label">Резус-фактор *</span>
+        <div class="radios">
+          <% Object.entries(RH_FACTORS).forEach(([key, label]) => { %>
+            <label class="radio"><input type="radio" name="rhFactor" value="<%= key %>" <%= values.rhFactor === key ? 'checked' : '' %>> <%= label %></label>
+          <% }) %>
+        </div>
+        <% if (errors.rhFactor) { %><div class="error"><%= errors.rhFactor %></div><% } %>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Визит</legend>
+
+    <div class="row">
+      <div class="field <%= err('donationType') %>">
+        <label for="donationType">Вид донации *</label>
+        <select id="donationType" name="donationType">
+          <% Object.entries(DONATION_TYPES).forEach(([key, t]) => { %>
+            <option value="<%= key %>" <%= values.donationType === key ? 'selected' : '' %>><%= t.label %> (<%= t.minVolume %>–<%= t.maxVolume %> мл)</option>
+          <% }) %>
+        </select>
+        <% if (errors.donationType) { %><div class="error"><%= errors.donationType %></div><% } %>
+      </div>
+
+      <div class="field <%= err('volume') %>">
+        <label for="volume">Объём, мл *</label>
+        <input id="volume" name="volume" type="number" min="0" step="1" value="<%= values.volume %>">
+        <div class="hint">Целое число ≥ 0, диапазон зависит от вида донации.</div>
+        <% if (errors.volume) { %><div class="error"><%= errors.volume %></div><% } %>
+      </div>
+    </div>
+
+    <div class="field <%= err('center') %>">
+      <label for="center">Центр сдачи крови *</label>
+      <select id="center" name="center">
+        <option value="">— выберите —</option>
+        <% Object.entries(CENTERS).forEach(([key, label]) => { %>
+          <option value="<%= key %>" <%= values.center === key ? 'selected' : '' %>><%= label %></option>
+        <% }) %>
+      </select>
+      <% if (errors.center) { %><div class="error"><%= errors.center %></div><% } %>
+    </div>
+
+    <div class="row">
+      <div class="field <%= err('donationDate') %>">
+        <label for="donationDate">Дата визита *</label>
+        <input id="donationDate" name="donationDate" type="date" min="<%= minDate %>" max="<%= maxDate %>" value="<%= values.donationDate %>">
+        <div class="hint">С <%= formatDate(minDate) %> по <%= formatDate(maxDate) %>.</div>
+        <% if (errors.donationDate) { %><div class="error"><%= errors.donationDate %></div><% } %>
+      </div>
+
+      <div class="field <%= err('donationTime') %>">
+        <label for="donationTime">Время визита *</label>
+        <input id="donationTime" name="donationTime" type="time" min="<%= limits.workStart %>" max="<%= limits.workEnd %>" step="1800" value="<%= values.donationTime %>">
+        <div class="hint">С <%= limits.workStart %> до <%= limits.workEnd %>, шаг 30 минут.</div>
+        <% if (errors.donationTime) { %><div class="error"><%= errors.donationTime %></div><% } %>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Контакты и уведомления</legend>
+
+    <div class="row">
+      <div class="field <%= err('phone') %>">
+        <label for="phone">Телефон *</label>
+        <input id="phone" name="phone" type="tel" value="<%= values.phone %>" data-max="<%= limits.phone.max %>" placeholder="+375 (29) 123-45-67" autocomplete="tel">
+        <div class="hint">Белорусский номер: коды 25, 29, 33, 44. <span class="counter"></span></div>
+        <% if (errors.phone) { %><div class="error"><%= errors.phone %></div><% } %>
+      </div>
+
+      <div class="field <%= err('email') %>">
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" value="<%= values.email %>" data-max="<%= limits.email.max %>" placeholder="donor@mail.by" autocomplete="email">
+        <div class="hint">Обязателен при уведомлении по e-mail. <span class="counter"></span></div>
+        <% if (errors.email) { %><div class="error"><%= errors.email %></div><% } %>
+      </div>
+    </div>
+
+    <div class="field <%= err('notifyBy') %>">
+      <span class="label">Напоминание о визите (за сутки) *</span>
+      <div class="radios">
+        <% Object.entries(NOTIFY_METHODS).forEach(([key, label]) => { %>
+          <label class="radio"><input type="radio" name="notifyBy" value="<%= key %>" <%= values.notifyBy === key ? 'checked' : '' %>> <%= label %></label>
+        <% }) %>
+      </div>
+      <% if (errors.notifyBy) { %><div class="error"><%= errors.notifyBy %></div><% } %>
+    </div>
+
+    <div class="field <%= err('comment') %>">
+      <label for="comment">Комментарий</label>
+      <textarea id="comment" name="comment" rows="3" data-max="<%= limits.comment.max %>" placeholder="Например: первая донация"><%= values.comment %></textarea>
+      <div class="hint">Необязательно, до <%= limits.comment.max %> символов. <span class="counter"></span></div>
+      <% if (errors.comment) { %><div class="error"><%= errors.comment %></div><% } %>
+    </div>
+
+    <div class="field <%= err('agree') %>">
+      <label class="checkbox"><input type="checkbox" name="agree" <%= values.agree === 'on' ? 'checked' : '' %>> Подтверждаю отсутствие противопоказаний к донорству *</label>
+      <% if (errors.agree) { %><div class="error"><%= errors.agree %></div><% } %>
+    </div>
+  </fieldset>
+
+  <div class="form__actions">
+    <button class="btn btn--primary" type="submit">Записаться</button>
+    <a class="btn btn--ghost" href="<%= link('/') %>">Отмена</a>
+  </div>
+</form>
+
+<script src="/js/form.js"></script>
+
+<%- include('partials/footer') %>
