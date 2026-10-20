@@ -95,7 +95,7 @@
     background: #c0392b;
 }
 
-/* Фильтр */
+
 .filter-bar {
     background: white;
     padding: 15px 20px;
@@ -113,7 +113,7 @@
     color: #34495e;
 }
 
-/* Статистика */
+
 .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -208,4 +208,128 @@
     padding: 40px;
     color: #e74c3c;
     font-size: 18px;
+}
+
+.header {
+    position: relative;
+}
+
+.btn-logout {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    min-height: 60vh;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3d3d0;
+    border-top-color: #e74c3c;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.retry-info {
+    font-size: 14px;
+    color: #e67e22;
+    font-weight: 600;
+}
+
+.error-box {
+    background: white;
+    border-left: 5px solid #e74c3c;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    padding: 30px;
+    text-align: center;
+    margin-top: 60px;
+}
+
+.error-box h3 {
+    color: #c0392b;
+    margin-bottom: 10px;
+}
+
+.error-box p {
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.error-box button {
+    margin-top: 10px;
+}
+
+.login-card {
+    max-width: 400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-error {
+    color: #c0392b;
+    font-size: 14px;
+}
+
+.donor-item.pending {
+    opacity: 0.6;
+    border: 1px dashed #e74c3c;
+}
+
+.saving-badge {
+    margin-left: 10px;
+    font-size: 12px;
+    font-weight: normal;
+    color: #e67e22;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.toast {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 1000;
+    animation: toastIn 0.3s ease;
+}
+
+.toast-success { background: #27ae60; }
+.toast-error   { background: #c0392b; }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translate(-50%, 20px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
 }

@@ -1,10 +1,20 @@
 require('dotenv').config({ path: './blood_donation.env' });
 const express = require('express');
+const cors = require('cors');
 const { Donor } = require('./models');
+const { authenticate } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 
 const app = express();
+
+
+app.use(cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 const PORT = 3000;
@@ -18,7 +28,8 @@ app.use('/profile', profileRoutes);
 
 app.get('/donors', async (req, res) => {
     try {
-        const donors = await Donor.findAll();
+        
+        const donors = await Donor.findAll({ order: [['id', 'ASC']] });
         res.json(donors);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -35,7 +46,8 @@ app.get('/donors/:id', async (req, res) => {
     }
 });
 
-app.post('/donors', async (req, res) => {
+
+app.post('/donors', authenticate, async (req, res) => {
     try {
         const { fullName, bloodType, phone } = req.body;
         if (!fullName || !bloodType || !phone) {
@@ -48,7 +60,7 @@ app.post('/donors', async (req, res) => {
     }
 });
 
-app.put('/donors/:id', async (req, res) => {
+app.put('/donors/:id', authenticate, async (req, res) => {
     try {
         const donor = await Donor.findByPk(req.params.id);
         if (!donor) return res.status(404).json({ error: 'Элемент не найден' });
@@ -59,7 +71,7 @@ app.put('/donors/:id', async (req, res) => {
     }
 });
 
-app.delete('/donors/:id', async (req, res) => {
+app.delete('/donors/:id', authenticate, async (req, res) => {
     try {
         const donor = await Donor.findByPk(req.params.id);
         if (!donor) return res.status(404).json({ error: 'Элемент не найден' });

@@ -1,105 +1,164 @@
-import { useState, useEffect } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useState, useEffect, useCallback } from 'react';
+import {
+    fetchDonors, addDonor, updateDonor, deleteDonor, getErrorMessage
+} from '../api';
+import { withRetry } from '../utils/retry';
+import Toast from './Toast';
 import '../App.css';
 
-const initialDonors = [
-    {
-        id: 1,
-        fullName: 'Иванов Иван Иванович',
-        bloodType: 'A+',
-        phone: '+375291234567',
-        city: 'Минск'
-    },
-    {
-        id: 2,
-        fullName: 'Петрова Анна Сергеевна',
-        bloodType: 'B-',
-        phone: '+375295678901',
-        city: 'Гомель'
-    }
-];
-
 const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const emptyForm = { fullName: '', bloodType: 'A+', phone: '', email: '' };
+const MAX_RETRIES = 3;
 
-function DonorList() {
-    const [donors, setDonors] = useLocalStorage('donors', initialDonors);
-
-    const [fullName, setFullName] = useState('');
-    const [bloodType, setBloodType] = useState('A+');
-    const [phone, setPhone] = useState('');
-    const [city, setCity] = useState('');
-
-    const [filterType, setFilterType] = useState('all');
-    const [editingId, setEditingId] = useState(null);
+function DonorList({ onLogout }) {
+    const [donors, setDonors] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [attempt, setAttempt] = useState(1);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const [form, setForm] = useState(emptyForm);
+    const [editingId, setEditingId] = useState(null);
+    const [filterType, setFilterType] = useState('all');
+
+    const [toast, setToast] = useState(null);
+    const showToast = (text, type = 'error') => setToast({ text, type, id: Date.now() });
+    const closeToast = useCallback(() => setToast(null), []);
 
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
+        const controller = new AbortController();
+
+        setLoading(true);
+        setError(null);
+
+        withRetry(() => fetchDonors(controller.signal), {
+            retries: MAX_RETRIES,
+            delay: 1000,
+            signal: controller.signal,
+            onAttempt: setAttempt
+        })
+            .then((data) => setDonors(data))
+            .catch((err) => {
+                if (!controller.signal.aborted) setError(getErrorMessage(err));
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setLoading(false);
+            });
+
+        return () => controller.abort();
+    }, [reloadKey]);
 
     useEffect(() => {
         document.title = `Доноров: ${donors.length}`;
     }, [donors.length]);
 
+    const handleAdd = async (data) => {
+        const tempId = Date.now();
+        setDonors((prev) => [...prev, { ...data, id: tempId, pending: true }]);
+        try {
+            const saved = await addDonor(data);
+            setDonors((prev) => prev.map((d) => (d.id === tempId ? saved : d)));
+            showToast('Донор добавлен', 'success');
+        } catch (err) {
+            setDonors((prev) => prev.filter((d) => d.id !== tempId));
+            showToast(`Не удалось добавить: ${getErrorMessage(err)}`);
+        }
+    };
+
+    const handleUpdate = async (id, data) => {
+        const old = donors.find((d) => d.id === id);
+        setDonors((prev) => prev.map((d) => (d.id === id ? { ...d, ...data, pending: true } : d)));
+        try {
+            const saved = await updateDonor(id, data);
+            setDonors((prev) => prev.map((d) => (d.id === id ? saved : d)));
+            showToast('Изменения сохранены', 'success');
+        } catch (err) {
+            setDonors((prev) => prev.map((d) => (d.id === id ? old : d)));
+            showToast(`Не удалось сохранить: ${getErrorMessage(err)}`);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Удалить донора?')) return;
+
+        const index = donors.findIndex((d) => d.id === id);
+        const removed = donors[index];
+        setDonors((prev) => prev.filter((d) => d.id !== id));
+        try {
+            await deleteDonor(id);
+            showToast('Донор удалён', 'success');
+        } catch (err) {
+            setDonors((prev) => {
+                const copy = [...prev];
+                copy.splice(index, 0, removed);
+                return copy;
+            });
+            showToast(`Не удалось удалить: ${getErrorMessage(err)}`);
+        }
+    };
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-
-        if (!fullName.trim() || !phone.trim()) {
-            alert('Заполните ФИО и телефон');
+        if (!form.fullName.trim() || !form.phone.trim()) {
+            showToast('Заполните ФИО и телефон');
             return;
         }
-
-        if (editingId) {
-            setDonors(donors.map(d =>
-                d.id === editingId
-                    ? { ...d, fullName, bloodType, phone, city }
-                    : d
-            ));
-            setEditingId(null);
-        } else {
-            setDonors([...donors, {
-                id: Date.now(),
-                fullName,
-                bloodType,
-                phone,
-                city
-            }]);
-        }
-
-        setFullName('');
-        setBloodType('A+');
-        setPhone('');
-        setCity('');
-    };
-const handleDelete = (id) => {
-        if (window.confirm('Удалить донора?')) {
-            setDonors(donors.filter(d => d.id !== id));
-        }
+        const data = { ...form };
+        const id = editingId;
+        setForm(emptyForm);
+        setEditingId(null);
+        if (id) handleUpdate(id, data);
+        else handleAdd(data);
     };
 
     const handleEdit = (donor) => {
         setEditingId(donor.id);
-        setFullName(donor.fullName);
-        setBloodType(donor.bloodType);
-        setPhone(donor.phone);
-        setCity(donor.city);
+        setForm({
+            fullName: donor.fullName,
+            bloodType: donor.bloodType,
+            phone: donor.phone,
+            email: donor.email || ''
+        });
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setFullName('');
-        setBloodType('A+');
-        setPhone('');
-        setCity('');
+        setForm(emptyForm);
     };
 
     const filteredDonors = filterType === 'all'
         ? donors
-        : donors.filter(d => d.bloodType === filterType);
+        : donors.filter((d) => d.bloodType === filterType);
 
     if (loading) {
-        return <div className="loading">Загрузка данных...</div>;
+        return (
+            <div className="loading">
+                <div className="spinner"></div>
+                <p>Загрузка данных...</p>
+                {attempt > 1 && (
+                    <p className="retry-info">Сервер не отвечает. Попытка {attempt} из {MAX_RETRIES}</p>
+                )}
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="app">
+                <div className="error-box">
+                    <h3>Не удалось загрузить данные</h3>
+                    <p>{error}</p>
+                    <p className="retry-info">Выполнено попыток: {attempt} из {MAX_RETRIES}</p>
+                    <button className="btn-primary" onClick={() => setReloadKey((k) => k + 1)}>
+                        Повторить
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -107,36 +166,21 @@ const handleDelete = (id) => {
             <div className="header">
                 <h1>Платформа донорства крови</h1>
                 <p>Управление базой доноров</p>
+                <button className="btn-logout" onClick={onLogout}>Выйти</button>
             </div>
 
-            {/* Форма */}
             <form className="form-card" onSubmit={handleSubmit}>
                 <h3>{editingId ? 'Редактировать донора' : 'Добавить донора'}</h3>
                 <div className="form-grid">
-                    <input
-                        type="text"
-                        placeholder="ФИО"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                    />
-                    <select
-                        value={bloodType}
-                        onChange={(e) => setBloodType(e.target.value)}
-                    >
-                        {bloodTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    <input name="fullName" type="text" placeholder="ФИО"
+                        value={form.fullName} onChange={handleChange} />
+                    <select name="bloodType" value={form.bloodType} onChange={handleChange}>
+                        {bloodTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <input
-                        type="text"
-                        placeholder="Телефон"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Город"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                    />
+                    <input name="phone" type="text" placeholder="Телефон"
+                        value={form.phone} onChange={handleChange} />
+                    <input name="email" type="email" placeholder="Email"
+                        value={form.email} onChange={handleChange} />
                 </div>
                 <div className="form-actions">
                     <button type="submit" className="btn-primary">
@@ -150,16 +194,17 @@ const handleDelete = (id) => {
                 </div>
             </form>
 
-            {}
             <div className="filter-bar">
                 <label>Фильтр по группе крови:</label>
                 <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                     <option value="all">Все</option>
-                    {bloodTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    {bloodTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
+                <button className="btn-secondary" onClick={() => setReloadKey((k) => k + 1)}>
+                    Обновить с сервера
+                </button>
             </div>
 
-            {}
             <div className="stats">
                 <div className="stat-card">
                     <div className="stat-value">{donors.length}</div>
@@ -170,31 +215,34 @@ const handleDelete = (id) => {
                     <div className="stat-label">Показано</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-value">
-                        {new Set(donors.map(d => d.bloodType)).size}
-                    </div>
+                    <div className="stat-value">{new Set(donors.map((d) => d.bloodType)).size}</div>
                     <div className="stat-label">Групп крови</div>
                 </div>
             </div>
-{}
+
             {filteredDonors.length === 0 ? (
                 <div className="empty-state">Доноров не найдено</div>
             ) : (
                 <ul className="donor-list">
-                    {filteredDonors.map(donor => (
-                        <li key={donor.id} className="donor-item">
+                    {filteredDonors.map((donor) => (
+                        <li key={donor.id} className={`donor-item ${donor.pending ? 'pending' : ''}`}>
                             <div className="donor-info">
-                                <div className="donor-name">{donor.fullName}</div>
+                                <div className="donor-name">
+                                    {donor.fullName}
+                                    {donor.pending && <span className="saving-badge">Сохранение...</span>}
+                                </div>
                                 <div className="donor-details">
                                     <span className="blood-badge">{donor.bloodType}</span>
-                                    {donor.phone} • {donor.city}
+                                    {donor.phone}{donor.email && ` • ${donor.email}`}
                                 </div>
                             </div>
                             <div className="donor-actions">
-                                <button className="btn-edit" onClick={() => handleEdit(donor)}>
+                                <button className="btn-edit" disabled={donor.pending}
+                                    onClick={() => handleEdit(donor)}>
                                     Изменить
                                 </button>
-                                <button className="btn-delete" onClick={() => handleDelete(donor.id)}>
+                                <button className="btn-delete" disabled={donor.pending}
+                                    onClick={() => handleDelete(donor.id)}>
                                     Удалить
                                 </button>
                             </div>
@@ -202,6 +250,8 @@ const handleDelete = (id) => {
                     ))}
                 </ul>
             )}
+
+            <Toast toast={toast} onClose={closeToast} />
         </div>
     );
 }
