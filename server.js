@@ -1,13 +1,15 @@
 require('dotenv').config({ path: './blood_donation.env' });
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Donor } = require('./models');
 const { authenticate } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
+const connectMongo = require('./mongo/db');
+const mongoDonorRoutes = require('./mongo/routes/donors');
 
 const app = express();
-
 
 app.use(cors({
     origin: 'http://localhost:5173',
@@ -19,16 +21,14 @@ app.use(express.json());
 
 const PORT = 3000;
 
-
 app.use('/auth', authRoutes);
-
 
 app.use('/profile', profileRoutes);
 
+app.use('/mongo/donors', mongoDonorRoutes);
 
 app.get('/donors', async (req, res) => {
     try {
-        
         const donors = await Donor.findAll({ order: [['id', 'ASC']] });
         res.json(donors);
     } catch (err) {
@@ -45,7 +45,6 @@ app.get('/donors/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 app.post('/donors', authenticate, async (req, res) => {
     try {
@@ -90,6 +89,8 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
 });
+
+connectMongo();
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
