@@ -1,0 +1,7 @@
+$kind: http-request
+url: http://localhost:3000/auth/register
+method: POST
+body:
+  type: json
+  content: '{ "email": "test@mail.com", "password": "Password1" }'
+order: 4501929345863614

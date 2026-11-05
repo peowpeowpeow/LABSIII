@@ -1,0 +1,7 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors/6adf9298a59d62ca51bcf55d/donations/6adf9298a59d62ca51bcf55e
+method: PATCH
+body:
+  type: json
+  content: '{ "increaseVolumeMl": 50 }'
+order: 4501929345870614

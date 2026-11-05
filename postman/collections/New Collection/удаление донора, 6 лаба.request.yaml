@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors/6adf9298a59d62ca51bcf55d/donations/6adf9298a59d62ca51bcf55e
+method: DELETE
+order: 4501929345871614

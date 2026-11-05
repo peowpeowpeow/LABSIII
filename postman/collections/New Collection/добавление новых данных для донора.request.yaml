@@ -1,0 +1,8 @@
+$kind: http-request
+name: добавление новых данных для донора, 6
+url: http://localhost:3000/mongo/donors/6adf9298a59d62ca51bcf55d/donations
+method: POST
+body:
+  type: json
+  content: '{ "date": "2026-12-01", "volumeMl": 450, "center": "РНПЦ трансфузиологии" }'
+order: 4501929345868614

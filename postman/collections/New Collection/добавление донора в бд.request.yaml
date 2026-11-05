@@ -1,0 +1,19 @@
+$kind: http-request
+url: " http://localhost:3000/donors"
+method: POST
+body:
+  type: json
+  content: "\r
+
+    {\r
+
+    \    \"fullName\": \"Сидоров Матвей\",\r
+
+    \    \"bloodType\": \"O+\",\r
+
+    \    \"phone\": \"+375331112233\",\r
+
+    \    \"email\": \"sidorov@mail.com\"\r
+
+    }\r\n"
+order: 4497149923795932

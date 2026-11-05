@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:3000/donors/7
+method: DELETE
+order: 4498531159814156

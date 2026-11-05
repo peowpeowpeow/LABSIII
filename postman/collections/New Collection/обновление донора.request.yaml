@@ -1,0 +1,19 @@
+$kind: http-request
+url: http://localhost:3000/donors/7
+method: PUT
+body:
+  type: json
+  content: "\r
+
+    {\r
+
+    \    \"fullName\": \"Иванов Иван Обновленный\",\r
+
+    \    \"bloodType\": \"A+\",\r
+
+    \    \"phone\": \"+375291234567\",\r
+
+    \    \"email\": \"new@mail.com\"\r
+
+    }\r\n"
+order: 4497790321674279

@@ -1,0 +1,7 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors/6adf9076da59804ee3f843f3
+method: GET
+body:
+  type: json
+  content: ""
+order: 4501929345866614

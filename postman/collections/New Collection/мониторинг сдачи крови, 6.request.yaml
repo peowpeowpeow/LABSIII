@@ -1,0 +1,4 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors/stats
+method: GET
+order: 4501929345874614

@@ -1,6 +1,6 @@
-
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -12,7 +12,7 @@ function authenticate(req, res, next) {
     const token = authHeader.split(' ')[1];
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {
@@ -21,6 +21,9 @@ function authenticate(req, res, next) {
 }
 
 function isAdmin(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Не авторизован' });
+    }
     if (req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Доступ запрещен' });
     }

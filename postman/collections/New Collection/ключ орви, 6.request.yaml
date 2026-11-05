@@ -1,0 +1,6 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors?contraindication=ОРВИ
+method: GET
+queryParams:
+  contraindication: ОРВИ
+order: 4501929345873614

@@ -1,0 +1,7 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors
+method: POST
+body:
+  type: json
+  content: '{ "bloodType": "Z+" }	'
+order: 4501929345877614

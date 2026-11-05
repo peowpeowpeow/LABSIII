@@ -1,0 +1,27 @@
+$kind: http-request
+url: http://localhost:3000/mongo/donors
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"fullName\": \"Ковалева Мария Игоревна\",\r
+
+    \  \"bloodType\": \"AB+\",\r
+
+    \  \"phone\": \"+375256667788\",\r
+
+    \  \"email\": \"kovaleva@mail.com\",\r
+
+    \  \"address\": { \"city\": \"Минск\", \"street\": \"ул. Ленина, 5\" },\r
+
+    \  \"contraindications\": [\"прививка\"],\r
+
+    \  \"donations\": [\r
+
+    \    { \"date\": \"2026-09-15\", \"volumeMl\": 450, \"center\": \"Городская СПК\", \"status\": \"completed\" }\r
+
+    \  ]\r
+
+    }"
+order: 4501929345865614

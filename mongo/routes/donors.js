@@ -1,12 +1,15 @@
 const express = require('express');
 const Donor = require('../models/Donor');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
-function handleError(res, err) {
+const fixBloodType = (value) => String(value).replace(' ', '+');
+
+const handleError = (err, res) => {
     if (err.name === 'ValidationError') {
-        const messages = Object.values(err.errors).map((e) => e.message);
-        return res.status(400).json({ error: messages.join('; ') });
+        const messages = Object.values(err.errors).map((e) => e.message).join('; ');
+        return res.status(400).json({ error: messages });
     }
     if (err.name === 'CastError') {
         return res.status(400).json({ error: 'Некорректный id' });
@@ -14,24 +17,20 @@ function handleError(res, err) {
     if (err.code === 11000) {
         return res.status(409).json({ error: 'Донор с таким email уже существует' });
     }
-    return res.status(500).json({ error: err.message });
-}
-
-const fixBloodType = (value) => String(value).replace(' ', '+');
+    res.status(500).json({ error: err.message });
+};
 
 router.get('/', async (req, res) => {
     try {
         const filter = {};
         if (req.query.bloodType) filter.bloodType = fixBloodType(req.query.bloodType);
         if (req.query.city) filter['address.city'] = req.query.city;
-        if (req.query.contraindication) {
-            filter.contraindications = req.query.contraindication;
-        }
+        if (req.query.contraindication) filter.contraindications = req.query.contraindication;
 
-        const donors = await Donor.find(filter).sort({ createdAt: 1 });
+        const donors = await Donor.find(filter).sort({ createdAt: -1 });
         res.json(donors);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
@@ -43,7 +42,7 @@ router.get('/stats', async (req, res) => {
             {
                 $group: {
                     _id: '$bloodType',
-                    donors: { $addToSet: '$_id' },
+                    donors: { $addToSet: '$fullName' },
                     donationsCount: { $sum: 1 },
                     totalVolumeMl: { $sum: '$donations.volumeMl' }
                 }
@@ -53,6 +52,7 @@ router.get('/stats', async (req, res) => {
                     _id: 0,
                     bloodType: '$_id',
                     donorsCount: { $size: '$donors' },
+                    donorNames: '$donors',
                     donationsCount: 1,
                     totalVolumeMl: 1
                 }
@@ -61,7 +61,7 @@ router.get('/stats', async (req, res) => {
         ]);
         res.json(stats);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
         if (!donor) return res.status(404).json({ error: 'Донор не найден' });
         res.json(donor);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
@@ -80,20 +80,20 @@ router.post('/', async (req, res) => {
         const donor = await Donor.create(req.body);
         res.status(201).json(donor);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
 router.put('/:id', async (req, res) => {
     try {
         const donor = await Donor.findByIdAndUpdate(req.params.id, req.body, {
-            returnDocument: 'after',
+            new: true,
             runValidators: true
         });
         if (!donor) return res.status(404).json({ error: 'Донор не найден' });
         res.json(donor);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
@@ -101,55 +101,63 @@ router.delete('/:id', async (req, res) => {
     try {
         const donor = await Donor.findByIdAndDelete(req.params.id);
         if (!donor) return res.status(404).json({ error: 'Донор не найден' });
-        res.json({ message: 'Донор удалён', donor });
+        res.status(204).send();
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
 router.post('/:id/donations', async (req, res) => {
     try {
-        const donor = await Donor.findByIdAndUpdate(
-            req.params.id,
-            { $push: { donations: req.body } },
-            { returnDocument: 'after', runValidators: true }
-        );
+        const donor = await Donor.findById(req.params.id);
         if (!donor) return res.status(404).json({ error: 'Донор не найден' });
+        
+        donor.donations.push(req.body);
+        await donor.save();
+        
         res.status(201).json(donor);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
 router.patch('/:id/donations/:donationId', async (req, res) => {
     try {
-        const set = {};
-        for (const key of ['date', 'volumeMl', 'center', 'status']) {
-            if (req.body[key] !== undefined) set[`donations.$.${key}`] = req.body[key];
-        }
-
+        const { id, donationId } = req.params;
         const update = {};
-        if (Object.keys(set).length) update.$set = set;
+        const arrayFilters = [];
+
+        for (const key of ['date', 'volumeMl', 'center', 'status']) {
+            if (req.body[key] !== undefined) {
+                update[`donations.$[elem].${key}`] = req.body[key];
+            }
+        }
 
         if (req.body.increaseVolumeMl !== undefined) {
-            if (set['donations.$.volumeMl'] !== undefined) {
+            if (update['donations.$[elem].volumeMl'] !== undefined) {
                 return res.status(400).json({ error: 'Укажите либо volumeMl, либо increaseVolumeMl' });
             }
-            update.$inc = { 'donations.$.volumeMl': Number(req.body.increaseVolumeMl) };
+            update.$inc = { 'donations.$[elem].volumeMl': Number(req.body.increaseVolumeMl) };
         }
-        if (!Object.keys(update).length) {
-            return res.status(400).json({ error: 'Нет полей для изменения' });
+
+        if (Object.keys(update).length === 0) {
+            return res.status(400).json({ error: 'Нет данных для обновления' });
         }
 
         const donor = await Donor.findOneAndUpdate(
-            { _id: req.params.id, 'donations._id': req.params.donationId },
+            { _id: id, 'donations._id': donationId },
             update,
-            { returnDocument: 'after', runValidators: true }
+            { 
+                new: true, 
+                runValidators: true,
+                arrayFilters: [{ 'elem._id': new mongoose.Types.ObjectId(donationId) }]
+            }
         );
-        if (!donor) return res.status(404).json({ error: 'Донор или донация не найдены' });
+
+        if (!donor) return res.status(404).json({ error: 'Донация не найдена' });
         res.json(donor);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 
@@ -158,12 +166,12 @@ router.delete('/:id/donations/:donationId', async (req, res) => {
         const donor = await Donor.findOneAndUpdate(
             { _id: req.params.id, 'donations._id': req.params.donationId },
             { $pull: { donations: { _id: req.params.donationId } } },
-            { returnDocument: 'after' }
+            { new: true }
         );
-        if (!donor) return res.status(404).json({ error: 'Донор или донация не найдены' });
+        if (!donor) return res.status(404).json({ error: 'Донация не найдена' });
         res.json(donor);
     } catch (err) {
-        handleError(res, err);
+        handleError(err, res);
     }
 });
 

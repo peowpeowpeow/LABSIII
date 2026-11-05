@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const DONORS_URL = '/donors';
 const LOGIN_URL = '/auth/login';
+const MONGO_STATS_URL = '/mongo/donors/stats';
+const MONGO_DONORS_URL = '/mongo/donors';
+const MONGO_SYNC_URL = '/mongo/sync';
 
 
 const api = axios.create({
@@ -38,14 +41,16 @@ const fromServer = (d) => ({
     fullName: d.fullName,
     bloodType: d.bloodType,
     phone: d.phone,
-    email: d.email || ''
+    email: d.email || '',
+    registrationDate: d.registrationDate || ''
 });
 
 const toServer = (d) => ({
     fullName: d.fullName,
     bloodType: d.bloodType,
     phone: d.phone,
-    email: d.email || null
+    email: d.email || null,
+    registrationDate: d.registrationDate || null
 });
 
 
@@ -58,7 +63,6 @@ export async function login(email, password) {
 export function logout() {
     localStorage.removeItem('token');
 }
-
 
 
 export async function fetchDonors(signal) {
@@ -81,6 +85,30 @@ export async function updateDonor(id, donor) {
 
 export function deleteDonor(id) {
     return api.delete(`${DONORS_URL}/${id}`);
+}
+
+
+export async function fetchMongoStats(signal) {
+    const res = await api.get(MONGO_STATS_URL, { signal });
+    return res.data;
+}
+
+
+export async function fetchMongoDonors(signal) {
+    const res = await api.get(MONGO_DONORS_URL, { signal });
+    return res.data;
+}
+
+
+export async function addMongoDonation(donorId, donation) {
+    const res = await api.post(`${MONGO_DONORS_URL}/${donorId}/donations`, donation);
+    return res.data;
+}
+
+
+export async function syncMongoDatabases() {
+    const res = await api.post(MONGO_SYNC_URL);
+    return res.data;
 }
 
 
