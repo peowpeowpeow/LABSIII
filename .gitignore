@@ -1,5 +1,6 @@
 node_modules/
+logs/
+data/donations.json
 data/*.tmp
-data/*.broken-*
 .env
 .DS_Store

@@ -1,17 +1,8 @@
+const limits = require('../config/limits.json');
 const { BLOOD_GROUPS, RH_FACTORS, DONATION_TYPES, CENTERS, NOTIFY_METHODS, toISODate, addDays } = require('./helpers');
 
-// Ограничения полей формы
-const LIMITS = {
-  donorName: { min: 5, max: 60 },
-  age: { min: 18, max: 65 },
-  weight: { min: 50, max: 200 },
-  phone: { max: 25 },
-  email: { max: 100 },
-  comment: { max: 300 },
-  maxDaysAhead: 90,
-  workStart: '08:00',
-  workEnd: '16:00'
-};
+const F = limits.fields;
+const S = limits.schedule;
 
 // Регулярные выражения для проверки формата
 const RE = {
@@ -24,13 +15,13 @@ const RE = {
   email: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/
 };
 
-// Очистка строки: управляющие символы -> пробел, схлопывание пробелов, обрезка краёв
+// Очистка строки: управляющие символы заменяются пробелом, пробелы схлопываются, края обрезаются
 function clean(value) {
   if (typeof value !== 'string') return '';
   return value.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Очистка многострочного текста (комментарий): переносы сохраняются
+// Очистка многострочного текста (комментарий) с сохранением переносов строк
 function cleanMultiline(value) {
   if (typeof value !== 'string') return '';
   return value
@@ -42,7 +33,7 @@ function cleanMultiline(value) {
     .trim();
 }
 
-// Общая проверка обязательного текстового поля: тип, пустота, пробелы, длина
+// Обязательное текстовое поле: тип, пустота, только пробелы, длина
 function requiredText(raw, label, { min = 1, max }) {
   if (raw === undefined || raw === null) return { error: `Поле «${label}» обязательно для заполнения` };
   if (typeof raw !== 'string') return { error: `Поле «${label}» содержит некорректное значение` };
@@ -54,16 +45,17 @@ function requiredText(raw, label, { min = 1, max }) {
   return { value };
 }
 
-// Проверка числового поля: непустое, неотрицательное (>= 0), формат, диапазон
-function numberField(raw, label, { min, max, decimal = false, unit = '' }) {
-  const base = requiredText(raw, label, { max: 10 });
+// Числовое поле: непустое, ограничение длины, значение не меньше нуля, формат, диапазон
+function numberField(raw, label, { min, max, maxLength, decimal = false, unit = '' }) {
+  const base = requiredText(raw, label, { max: 1000 });
   if (base.error) return base;
   const str = base.value.replace(/\s/g, '');
 
+  if (str.length > maxLength) return { error: `«${label}»: слишком длинное значение, не более ${maxLength} символов` };
   if (str.startsWith('-')) return { error: `«${label}» не может быть отрицательным (значение должно быть ≥ 0)` };
   if (!(decimal ? RE.decimal : RE.integer).test(str)) {
     return { error: decimal
-      ? `«${label}»: введите число (допускается один знак после запятой), без букв и пробелов`
+      ? `«${label}»: введите число (допускается один знак после запятой) без букв и пробелов`
       : `«${label}»: введите целое число без букв, знаков и пробелов` };
   }
 
@@ -73,7 +65,7 @@ function numberField(raw, label, { min, max, decimal = false, unit = '' }) {
   return { value: num };
 }
 
-// Проверка значения из списка (select/radio) — защита от подмены значений
+// Значение из списка (select или radio): защита от подмены значений
 function enumField(raw, label, dictionary) {
   if (raw !== undefined && typeof raw !== 'string') return { error: `Поле «${label}» содержит некорректное значение` };
   if (raw === undefined || clean(raw) === '') return { error: `Выберите значение в поле «${label}»` };
@@ -84,7 +76,7 @@ function enumField(raw, label, dictionary) {
   return { value };
 }
 
-// Основная валидация формы записи на донацию
+// Проверка формы записи на донацию
 function validateDonation(body, existing) {
   const errors = {};
   const data = {};
@@ -93,37 +85,37 @@ function validateDonation(body, existing) {
     else data[field] = result.value;
   };
 
-  // ФИО: только буквы, пробелы между словами, дефис внутри слова, минимум 2 слова
-  const name = requiredText(body.donorName, 'ФИО донора', LIMITS.donorName);
+  // ФИО: только буквы, пробел между словами, дефис внутри слова, минимум два слова
+  const name = requiredText(body.donorName, 'ФИО донора', F.donorName);
   if (!name.error && !RE.name.test(name.value)) {
     name.error = '«ФИО донора»: минимум два слова (фамилия и имя), только буквы, пробел и дефис внутри слова';
   }
   put('donorName', name);
 
-  // Возраст и вес: числа >= 0 и медицинские ограничения для доноров
-  put('age', numberField(body.age, 'Возраст', { ...LIMITS.age, unit: ' лет' }));
-  put('weight', numberField(body.weight, 'Вес', { ...LIMITS.weight, decimal: true, unit: ' кг' }));
+  // Возраст и вес: числа не меньше нуля и ограничения для доноров
+  put('age', numberField(body.age, 'Возраст', { ...F.age, unit: ' лет' }));
+  put('weight', numberField(body.weight, 'Вес', { ...F.weight, decimal: true, unit: ' кг' }));
 
-  // Группа крови, резус, вид донации, центр, способ уведомления: только значения из справочников
+  // Значения списков сверяются со справочниками
   put('bloodGroup', enumField(body.bloodGroup, 'Группа крови', BLOOD_GROUPS));
   put('rhFactor', enumField(body.rhFactor, 'Резус-фактор', RH_FACTORS));
   put('donationType', enumField(body.donationType, 'Вид донации', DONATION_TYPES));
   put('center', enumField(body.center, 'Центр сдачи крови', CENTERS));
   put('notifyBy', enumField(body.notifyBy, 'Уведомление', NOTIFY_METHODS));
 
-  // Объём: целое число >= 0, диапазон зависит от вида донации
+  // Объём: целое число не меньше нуля, диапазон зависит от вида донации
   const type = DONATION_TYPES[data.donationType];
-  const volume = numberField(body.volume, 'Объём', {
+  put('volume', numberField(body.volume, 'Объём', {
     min: type ? type.minVolume : 0,
     max: type ? type.maxVolume : 650,
+    maxLength: F.volume.maxLength,
     unit: ' мл'
-  });
-  put('volume', volume);
+  }));
 
-  // Дата визита: корректная календарная дата, не в прошлом и не дальше 90 дней
+  // Дата визита: реальная дата, не в прошлом и не дальше допустимого числа дней
   const today = toISODate(new Date());
-  const lastDay = addDays(today, LIMITS.maxDaysAhead);
-  const date = requiredText(body.donationDate, 'Дата визита', { max: 10 });
+  const lastDay = addDays(today, S.maxDaysAhead);
+  const date = requiredText(body.donationDate, 'Дата визита', { max: F.date.maxLength });
   if (!date.error) {
     const [y, m, d] = date.value.split('-').map(Number);
     const real = new Date(y, m - 1, d);
@@ -132,18 +124,18 @@ function validateDonation(body, existing) {
     } else if (date.value < today) {
       date.error = '«Дата визита» не может быть в прошлом';
     } else if (date.value > lastDay) {
-      date.error = `«Дата визита»: запись открыта не более чем на ${LIMITS.maxDaysAhead} дней вперёд`;
+      date.error = `«Дата визита»: запись открыта не более чем на ${S.maxDaysAhead} дней вперёд`;
     }
   }
   put('donationDate', date);
 
-  // Время визита: шаг 30 минут, рабочие часы, для сегодняшней даты — не раньше текущего времени
-  const time = requiredText(body.donationTime, 'Время визита', { max: 5 });
+  // Время визита: шаг 30 минут, рабочие часы, для сегодняшней даты — позже текущего времени
+  const time = requiredText(body.donationTime, 'Время визита', { max: F.time.maxLength });
   if (!time.error) {
     if (!RE.time.test(time.value)) {
       time.error = '«Время визита»: формат ЧЧ:ММ, минуты 00 или 30';
-    } else if (time.value < LIMITS.workStart || time.value > LIMITS.workEnd) {
-      time.error = `«Время визита»: приём с ${LIMITS.workStart} до ${LIMITS.workEnd}`;
+    } else if (time.value < S.workStart || time.value > S.workEnd) {
+      time.error = `«Время визита»: приём с ${S.workStart} до ${S.workEnd}`;
     } else if (data.donationDate === today) {
       const now = new Date();
       const nowStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -152,8 +144,8 @@ function validateDonation(body, existing) {
   }
   put('donationTime', time);
 
-  // Телефон: белорусский номер, допускаются пробелы, скобки и дефисы; хранится в едином формате
-  const phone = requiredText(body.phone, 'Телефон', LIMITS.phone);
+  // Телефон: белорусский номер, хранится в едином формате
+  const phone = requiredText(body.phone, 'Телефон', F.phone);
   if (!phone.error) {
     const digits = phone.value.replace(/[\s()-]/g, '');
     if (!RE.phone.test(digits)) {
@@ -171,33 +163,35 @@ function validateDonation(body, existing) {
   } else if (emailRaw === '') {
     if (data.notifyBy === 'email') errors.email = 'Для уведомления по e-mail укажите адрес электронной почты';
     else data.email = '';
-  } else if (emailRaw.length > LIMITS.email.max) {
-    errors.email = `«E-mail»: максимум ${LIMITS.email.max} символов (сейчас ${emailRaw.length})`;
+  } else if (emailRaw.length > F.email.max) {
+    errors.email = `«E-mail»: максимум ${F.email.max} символов (сейчас ${emailRaw.length})`;
   } else if (!RE.email.test(emailRaw)) {
     errors.email = '«E-mail»: некорректный адрес (пример: donor@mail.by)';
   } else {
     data.email = emailRaw.toLowerCase();
   }
 
-  // Комментарий: необязателен, строка из одних пробелов считается пустой, ограничение длины
+  // Комментарий: необязателен, строка из пробелов считается пустой, длина ограничена
   const comment = cleanMultiline(body.comment);
-  if (comment.length > LIMITS.comment.max) {
-    errors.comment = `«Комментарий»: максимум ${LIMITS.comment.max} символов (сейчас ${comment.length})`;
+  if (comment.length > F.comment.max) {
+    errors.comment = `«Комментарий»: максимум ${F.comment.max} символов (сейчас ${comment.length})`;
   } else {
     data.comment = comment;
   }
 
-  // Согласие с условиями донации обязательно
+  // Подтверждение отсутствия противопоказаний
   if (body.agree !== 'on') errors.agree = 'Необходимо подтвердить отсутствие противопоказаний';
 
-  // Бизнес-правило: один донор (телефон) — одна запланированная донация на дату
+  // Один донор (телефон) — одна запланированная донация на дату
   if (!errors.phone && !errors.donationDate) {
     const duplicate = existing.find((d) =>
       d.status === 'planned' && d.phone === data.phone && d.donationDate === data.donationDate);
-    if (duplicate) errors.donationDate = `Донор с этим телефоном уже записан на ${data.donationDate.split('-').reverse().join('.')} (запись №${duplicate.id})`;
+    if (duplicate) {
+      errors.donationDate = `Донор с этим телефоном уже записан на ${data.donationDate.split('-').reverse().join('.')} (запись №${duplicate.id})`;
+    }
   }
 
   return { errors, data, isValid: Object.keys(errors).length === 0 };
 }
 
-module.exports = { validateDonation, LIMITS };
+module.exports = { validateDonation };

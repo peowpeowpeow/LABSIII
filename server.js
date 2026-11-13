@@ -1,13 +1,12 @@
 const path = require('path');
 const express = require('express');
 
+const limits = require('./config/limits.json');
 const logger = require('./middleware/logger');
 const { auth } = require('./middleware/auth');
 const { notFound, errorHandler } = require('./middleware/errorHandlers');
-const storage = require('./utils/storage');
 const helpers = require('./utils/helpers');
 const donationRoutes = require('./routes/donations');
-const demoRoutes = require('./routes/demo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,25 +16,27 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.disable('x-powered-by');
 
-// Функции-помощники и справочники, доступные во всех шаблонах
+// Справочники и функции-помощники, доступные во всех шаблонах
 Object.assign(app.locals, helpers);
 
-// Глобальные middleware: логирование, статика, разбор тела формы, авторизация
-app.use(logger);
+// Глобальные middleware: статика, логирование, авторизация, разбор формы с ограничением размера
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+app.use(logger);
 app.use(auth);
+app.use(express.urlencoded({
+  extended: false,
+  limit: limits.request.bodyLimit,
+  parameterLimit: limits.request.parameterLimit
+}));
 
 // Маршруты приложения
 app.use('/', donationRoutes);
-app.use('/', demoRoutes);
 
-// Обработка ошибок: подключается строго ПОСЛЕ всех маршрутов
+// Обработка ошибок: подключается строго после всех маршрутов
 app.use(notFound);
 app.use(errorHandler);
 
-// Загрузка данных из файла и запуск сервера
-storage.init();
+// Запуск сервера
 app.listen(PORT, () => {
   console.log(`Сервер запущен: http://localhost:${PORT}`);
   console.log(`С авторизацией:  http://localhost:${PORT}/?auth=1`);

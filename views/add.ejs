@@ -11,7 +11,7 @@
   </div>
 </section>
 
-<!-- Сводка ошибок валидации -->
+<!-- Сводка ошибок проверки -->
 <% if (Object.keys(errors).length > 0) { %>
   <div class="alert alert--error">
     <strong>Исправьте ошибки (<%= Object.keys(errors).length %>):</strong>
@@ -21,7 +21,7 @@
   </div>
 <% } %>
 
-<!-- Форма записи (novalidate — чтобы продемонстрировать серверную проверку) -->
+<!-- Форма записи: maxlength ограничивает ввод в браузере, novalidate оставляет проверку серверу -->
 <form class="form card" method="POST" action="<%= link('/add') %>" novalidate>
 
   <fieldset>
@@ -30,23 +30,23 @@
     <div class="field <%= err('donorName') %>">
       <label for="donorName">ФИО донора *</label>
       <input id="donorName" name="donorName" type="text" value="<%= values.donorName %>"
-             data-max="<%= limits.donorName.max %>" placeholder="Иванов Иван Иванович" autocomplete="name">
-      <div class="hint">От <%= limits.donorName.min %> до <%= limits.donorName.max %> символов, минимум два слова, только буквы. <span class="counter"></span></div>
+             maxlength="<%= fields.donorName.max %>" data-max="<%= fields.donorName.max %>" placeholder="Иванов Иван Иванович" autocomplete="name">
+      <div class="hint">От <%= fields.donorName.min %> до <%= fields.donorName.max %> символов, минимум два слова, только буквы. <span class="counter"></span></div>
       <% if (errors.donorName) { %><div class="error"><%= errors.donorName %></div><% } %>
     </div>
 
     <div class="row">
       <div class="field <%= err('age') %>">
         <label for="age">Возраст, лет *</label>
-        <input id="age" name="age" type="number" min="0" step="1" value="<%= values.age %>" placeholder="18–65">
-        <div class="hint">Целое число ≥ 0, донорство — с <%= limits.age.min %> до <%= limits.age.max %> лет.</div>
+        <input id="age" name="age" type="text" inputmode="numeric" maxlength="<%= fields.age.maxLength %>" value="<%= values.age %>" placeholder="18–65">
+        <div class="hint">Целое число ≥ 0, донорство — с <%= fields.age.min %> до <%= fields.age.max %> лет.</div>
         <% if (errors.age) { %><div class="error"><%= errors.age %></div><% } %>
       </div>
 
       <div class="field <%= err('weight') %>">
         <label for="weight">Вес, кг *</label>
-        <input id="weight" name="weight" type="text" inputmode="decimal" value="<%= values.weight %>" placeholder="например, 72,5">
-        <div class="hint">Число ≥ 0, от <%= limits.weight.min %> до <%= limits.weight.max %> кг.</div>
+        <input id="weight" name="weight" type="text" inputmode="decimal" maxlength="<%= fields.weight.maxLength %>" value="<%= values.weight %>" placeholder="например, 72,5">
+        <div class="hint">Число ≥ 0, от <%= fields.weight.min %> до <%= fields.weight.max %> кг.</div>
         <% if (errors.weight) { %><div class="error"><%= errors.weight %></div><% } %>
       </div>
     </div>
@@ -91,7 +91,7 @@
 
       <div class="field <%= err('volume') %>">
         <label for="volume">Объём, мл *</label>
-        <input id="volume" name="volume" type="number" min="0" step="1" value="<%= values.volume %>">
+        <input id="volume" name="volume" type="text" inputmode="numeric" maxlength="<%= fields.volume.maxLength %>" value="<%= values.volume %>">
         <div class="hint">Целое число ≥ 0, диапазон зависит от вида донации.</div>
         <% if (errors.volume) { %><div class="error"><%= errors.volume %></div><% } %>
       </div>
@@ -118,8 +118,8 @@
 
       <div class="field <%= err('donationTime') %>">
         <label for="donationTime">Время визита *</label>
-        <input id="donationTime" name="donationTime" type="time" min="<%= limits.workStart %>" max="<%= limits.workEnd %>" step="1800" value="<%= values.donationTime %>">
-        <div class="hint">С <%= limits.workStart %> до <%= limits.workEnd %>, шаг 30 минут.</div>
+        <input id="donationTime" name="donationTime" type="time" min="<%= schedule.workStart %>" max="<%= schedule.workEnd %>" step="1800" value="<%= values.donationTime %>">
+        <div class="hint">С <%= schedule.workStart %> до <%= schedule.workEnd %>, шаг 30 минут.</div>
         <% if (errors.donationTime) { %><div class="error"><%= errors.donationTime %></div><% } %>
       </div>
     </div>
@@ -131,14 +131,14 @@
     <div class="row">
       <div class="field <%= err('phone') %>">
         <label for="phone">Телефон *</label>
-        <input id="phone" name="phone" type="tel" value="<%= values.phone %>" data-max="<%= limits.phone.max %>" placeholder="+375 (29) 123-45-67" autocomplete="tel">
+        <input id="phone" name="phone" type="tel" value="<%= values.phone %>" maxlength="<%= fields.phone.max %>" data-max="<%= fields.phone.max %>" placeholder="+375 (29) 123-45-67" autocomplete="tel">
         <div class="hint">Белорусский номер: коды 25, 29, 33, 44. <span class="counter"></span></div>
         <% if (errors.phone) { %><div class="error"><%= errors.phone %></div><% } %>
       </div>
 
       <div class="field <%= err('email') %>">
         <label for="email">E-mail</label>
-        <input id="email" name="email" type="email" value="<%= values.email %>" data-max="<%= limits.email.max %>" placeholder="donor@mail.by" autocomplete="email">
+        <input id="email" name="email" type="email" value="<%= values.email %>" maxlength="<%= fields.email.max %>" data-max="<%= fields.email.max %>" placeholder="donor@mail.by" autocomplete="email">
         <div class="hint">Обязателен при уведомлении по e-mail. <span class="counter"></span></div>
         <% if (errors.email) { %><div class="error"><%= errors.email %></div><% } %>
       </div>
@@ -156,8 +156,8 @@
 
     <div class="field <%= err('comment') %>">
       <label for="comment">Комментарий</label>
-      <textarea id="comment" name="comment" rows="3" data-max="<%= limits.comment.max %>" placeholder="Например: первая донация"><%= values.comment %></textarea>
-      <div class="hint">Необязательно, до <%= limits.comment.max %> символов. <span class="counter"></span></div>
+      <textarea id="comment" name="comment" rows="3" maxlength="<%= fields.comment.max %>" data-max="<%= fields.comment.max %>" placeholder="Например: первая донация"><%= values.comment %></textarea>
+      <div class="hint">Необязательно, до <%= fields.comment.max %> символов. <span class="counter"></span></div>
       <% if (errors.comment) { %><div class="error"><%= errors.comment %></div><% } %>
     </div>
 

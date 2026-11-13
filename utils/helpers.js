@@ -1,13 +1,11 @@
+const limits = require('../config/limits.json');
+
 // Справочники предметной области
 const BLOOD_GROUPS = { O: 'O (I)', A: 'A (II)', B: 'B (III)', AB: 'AB (IV)' };
 
 const RH_FACTORS = { pos: 'Rh+', neg: 'Rh−' };
 
-const DONATION_TYPES = {
-  whole: { label: 'Цельная кровь', minVolume: 200, maxVolume: 450, intervalDays: 60 },
-  plasma: { label: 'Плазма', minVolume: 200, maxVolume: 600, intervalDays: 14 },
-  platelets: { label: 'Тромбоциты', minVolume: 200, maxVolume: 500, intervalDays: 14 }
-};
+const DONATION_TYPES = limits.donationTypes;
 
 const CENTERS = {
   center1: 'Центр трансфузиологии №1 (Минск)',
@@ -59,6 +57,6 @@ function reminderText(donation) {
 }
 
 module.exports = {
-  BLOOD_GROUPS, RH_FACTORS, DONATION_TYPES, CENTERS, STATUSES, NOTIFY_METHODS,
+  BLOOD_GROUPS, RH_FACTORS, DONATION_TYPES, CENTERS, STATUSES, NOTIFY_METHODS, LIMITS: limits,
   toISODate, formatDate, formatDateTime, addDays, nextAllowedDate, reminderText
 };

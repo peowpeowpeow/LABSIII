@@ -1,0 +1,27 @@
+{
+  "request": {
+    "bodyLimit": "10kb",
+    "parameterLimit": 30
+  },
+  "fields": {
+    "donorName": { "min": 5, "max": 60 },
+    "age": { "min": 18, "max": 65, "maxLength": 3 },
+    "weight": { "min": 50, "max": 200, "maxLength": 5 },
+    "volume": { "maxLength": 3 },
+    "phone": { "max": 25 },
+    "email": { "max": 100 },
+    "comment": { "max": 300 },
+    "date": { "maxLength": 10 },
+    "time": { "maxLength": 5 }
+  },
+  "donationTypes": {
+    "whole": { "label": "Цельная кровь", "minVolume": 200, "maxVolume": 450, "intervalDays": 60 },
+    "plasma": { "label": "Плазма", "minVolume": 200, "maxVolume": 600, "intervalDays": 14 },
+    "platelets": { "label": "Тромбоциты", "minVolume": 200, "maxVolume": 500, "intervalDays": 14 }
+  },
+  "schedule": {
+    "maxDaysAhead": 90,
+    "workStart": "08:00",
+    "workEnd": "16:00"
+  }
+}

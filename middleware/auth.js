@@ -1,4 +1,4 @@
-// Имитация авторизации по query-параметру ?auth=1
+// Имитация авторизации по параметру запроса ?auth=1
 function auth(req, res, next) {
   const isAuthenticated = req.query.auth === '1';
 

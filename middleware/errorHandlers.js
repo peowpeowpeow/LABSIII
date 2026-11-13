@@ -1,9 +1,21 @@
 // Резервная HTML-страница на случай, если не удалось отрендерить сам шаблон 500.ejs
-function fallbackHtml(status, errorId) {
+function fallbackHtml(status, errorId, message) {
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Ошибка ${status}</title></head>
 <body style="font-family:sans-serif;background:#fff;color:#222;padding:40px">
-<h1>Ошибка ${status}</h1><p>Внутренняя ошибка сервера. Код ошибки: ${errorId}</p>
+<h1>Ошибка ${status}</h1><p>${message}</p><p>Код ошибки: ${errorId}</p>
 <p><a href="/">На главную</a></p></body></html>`;
+}
+
+// Понятное сообщение для ошибок, которые создало не само приложение
+function describe(err) {
+  if (err.userMessage) return { message: err.userMessage, hint: err.hint };
+  if (err.type === 'entity.too.large') {
+    return { message: 'Отправлено слишком много данных: размер формы превышает допустимый.', hint: 'Сократите текст в полях формы и отправьте её снова.' };
+  }
+  if (err.type === 'parameters.too.many') {
+    return { message: 'Форма содержит слишком много полей.', hint: 'Отправьте форму со страницы сайта без изменений.' };
+  }
+  return { message: 'При обработке запроса произошла внутренняя ошибка сервера.', hint: 'Повторите запрос позже. Если ошибка повторяется, сообщите администратору код ошибки.' };
 }
 
 // 404: ни один маршрут не обработал запрос
@@ -15,13 +27,18 @@ function notFound(req, res) {
   });
 }
 
-// Централизованный обработчик ошибок (4 параметра): 404 из маршрутов и все 500
+// Централизованный обработчик ошибок (4 параметра): 404 из контроллеров и все ошибки 4xx/5xx
 function errorHandler(err, req, res, next) {
   if (res.headersSent) return next(err);
 
+  // Значения для шапки, если ошибка возникла раньше middleware авторизации
+  if (!res.locals.user) res.locals.user = { name: 'Гость', isAuthenticated: false };
+  if (!res.locals.link) res.locals.link = (url) => url;
+  if (!res.locals.currentPath) res.locals.currentPath = req.path;
+
   const status = Number(err.status || err.statusCode) || 500;
 
-  // Ошибка «не найдено», брошенная контроллером (например, нет записи с таким ID)
+  // Запись не найдена: ошибка 404 из контроллера
   if (status === 404) {
     return res.status(404).render('404', {
       title: 'Страница не найдена',
@@ -30,29 +47,27 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  // Логирование ошибки с уникальным кодом для поиска в консоли
+  // Код ошибки и понятное сообщение в консоль
+  const httpStatus = status >= 400 && status < 600 ? status : 500;
   const errorId = 'ERR-' + Date.now().toString(36).toUpperCase();
   const occurredAt = new Date();
-  console.error(`[${occurredAt.toLocaleString('ru-RU')}] ${errorId} ${req.method} ${req.originalUrl}`);
-  console.error(err.stack || err);
-
-  const httpStatus = status >= 400 && status < 600 ? status : 500;
-  const isDev = process.env.NODE_ENV !== 'production';
+  const { message, hint } = describe(err);
+  console.error(`[${occurredAt.toLocaleString('ru-RU')}] ${errorId} ${req.method} ${req.originalUrl}: ${message}`);
+  if (!err.userMessage && httpStatus >= 500) console.error(err.stack || err);
 
   res.status(httpStatus).render('500', {
-    title: 'Ошибка сервера',
+    title: httpStatus >= 500 ? 'Ошибка сервера' : 'Ошибка запроса',
     status: httpStatus,
     errorId,
     occurredAt,
     method: req.method,
     requestedUrl: req.originalUrl,
-    errorName: err.name || 'Error',
-    errorMessage: err.expose || isDev ? err.message : 'Внутренняя ошибка сервера',
-    stack: isDev ? err.stack : null
+    message,
+    hint
   }, (renderErr, html) => {
     if (renderErr) {
-      console.error('Не удалось отрендерить 500.ejs:', renderErr);
-      return res.type('html').send(fallbackHtml(httpStatus, errorId));
+      console.error(`${errorId}: не удалось отобразить страницу ошибки, отправлена резервная страница`);
+      return res.type('html').send(fallbackHtml(httpStatus, errorId, message));
     }
     res.send(html);
   });

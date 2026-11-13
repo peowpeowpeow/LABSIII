@@ -1,4 +1,4 @@
-// Счётчики символов и подсветка полей из одних пробелов (подсказка; основная проверка — на сервере)
+// Счётчики символов и подсветка полей из одних пробелов (подсказка, основная проверка выполняется на сервере)
 document.querySelectorAll('[data-max]').forEach((input) => {
   const counter = input.closest('.field').querySelector('.counter');
   const max = Number(input.dataset.max);

@@ -1,11 +1,13 @@
 const storage = require('../utils/storage');
-const { validateDonation, LIMITS } = require('../utils/validation');
-const { STATUSES, toISODate, addDays } = require('../utils/helpers');
+const journal = require('../utils/journal');
+const { AppError } = require('../utils/appError');
+const { validateDonation } = require('../utils/validation');
+const { STATUSES, LIMITS, toISODate, addDays } = require('../utils/helpers');
 
-// Создание ошибки с HTTP-статусом
-function httpError(status, message) {
+// Ошибка «не найдено» с HTTP-статусом 404
+function notFoundError(message) {
   const err = new Error(message);
-  err.status = status;
+  err.status = 404;
   return err;
 }
 
@@ -25,9 +27,10 @@ function formLocals(values, errors) {
     title: 'Запись на донацию',
     values,
     errors,
-    limits: LIMITS,
+    fields: LIMITS.fields,
+    schedule: LIMITS.schedule,
     minDate: today,
-    maxDate: addDays(today, LIMITS.maxDaysAhead)
+    maxDate: addDays(today, LIMITS.schedule.maxDaysAhead)
   };
 }
 
@@ -55,10 +58,10 @@ function list(req, res) {
 
 // GET /item/:id — детальная страница записи
 function show(req, res, next) {
-  if (!/^\d+$/.test(req.params.id)) return next(httpError(404, `Некорректный идентификатор записи: «${req.params.id}»`));
+  if (!/^\d{1,9}$/.test(req.params.id)) return next(notFoundError(`Некорректный номер записи: «${req.params.id.slice(0, 30)}»`));
 
   const donation = storage.findById(Number(req.params.id));
-  if (!donation) return next(httpError(404, `Запись №${req.params.id} не найдена`));
+  if (!donation) return next(notFoundError(`Запись №${req.params.id} не найдена`));
 
   const history = storage.donations
     .filter((d) => d.phone === donation.phone && d.id !== donation.id)
@@ -72,20 +75,27 @@ function addForm(req, res) {
   res.render('add', formLocals(emptyForm(), {}));
 }
 
-// POST /add — проверка данных, сохранение в файл, редирект на главную
-async function addSubmit(req, res) {
+// POST /add — проверка данных, запись в журнал и в файл данных, редирект на главную
+function addSubmit(req, res) {
   const body = req.body || {};
   const { errors, data, isValid } = validateDonation(body, storage.donations);
 
   if (!isValid) {
     const values = { ...emptyForm() };
     for (const key of Object.keys(values)) {
-      if (typeof body[key] === 'string') values[key] = body[key];
+      if (typeof body[key] === 'string') values[key] = body[key].slice(0, 1000);
     }
     return res.status(422).render('add', formLocals(values, errors));
   }
 
-  const donation = await storage.add(data);
+  // Создание записи — критичная операция: без записи в журнал она запрещена
+  try {
+    journal.write(`[${new Date().toLocaleString('ru-RU')}] Создание записи: ${data.donorName}, ${data.donationDate} ${data.donationTime}`);
+  } catch (err) {
+    throw new AppError(500, `Запись на донацию не сохранена, так как журнал запросов недоступен. ${err.userMessage}`, err.hint, err.cause);
+  }
+
+  const donation = storage.add(data);
   res.redirect(res.locals.link(`/?created=${donation.id}`));
 }
 

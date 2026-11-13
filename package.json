@@ -1,7 +1,7 @@
 {
   "name": "pz21-blood-donation",
-  "version": "1.0.0",
-  "description": "ПЗ №1: Middleware и шаблонизатор EJS. Платформа для донорства крови (запись, уведомления, история).",
+  "version": "2.0.0",
+  "description": "ПЗ №1: Middleware и шаблонизатор EJS. Платформа для донорства крови (запись, уведомления, история). Данные и журнал запросов хранятся в файлах.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
