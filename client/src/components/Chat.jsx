@@ -184,7 +184,24 @@ function Chat() {
                         ) : (
                             <div key={m._id || i} className="msg">
                                 <div className="msg-head">
-                                    <b>{m.author}</b> <span>{formatTime(m.createdAt)}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{
+                                            width: '24px', 
+                                            height: '24px', 
+                                            borderRadius: '50%',
+                                            background: localStorage.getItem('avatarColor') || '#d32f2f',
+                                            color: 'white', 
+                                            display: 'flex', 
+                                            alignItems: 'center',
+                                            justifyContent: 'center', 
+                                            fontSize: '12px', 
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {m.author.charAt(0).toUpperCase()}
+                                        </div>
+                                        <b>{m.author}</b>
+                                    </div>
+                                    <span>{formatTime(m.createdAt)}</span>
                                 </div>
                                 <div className="msg-text">{m.text}</div>
                             </div>

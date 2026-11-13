@@ -3,15 +3,19 @@ import DonorList from './components/DonorList';
 import LoginForm from './components/LoginForm';
 import Chat from './components/Chat';
 import StatsPanel from './components/StatsPanel';
+import Profile from './components/Profile';
 import { logout } from './api';
 import './App.css';
 
 function App() {
     const [isAuth, setIsAuth] = useState(() => !!localStorage.getItem('token'));
-    const [page, setPage] = useState('donors'); // 'donors' | 'analytics' | 'chat'
+    const [page, setPage] = useState('donors');
     
     const [theme, setTheme] = useState(() => {
-        return localStorage.getItem('theme') || 'light';
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) return savedTheme;
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
     });
 
     useEffect(() => {
@@ -46,13 +50,11 @@ function App() {
                         <h1>Платформа донорства крови</h1>
                         <p>Управление базой доноров</p>
                     </div>
-                    <div className="header-actions">
+                    <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button className="theme-toggle" onClick={toggleTheme} title="Сменить тему">
                             {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
                         </button>
-                        {isAuth && (
-                            <button className="btn-logout" onClick={handleLogout}>Выйти</button>
-                        )}
+                        {isAuth && <Profile onLogout={handleLogout} />}
                     </div>
                 </div>
             </header>
