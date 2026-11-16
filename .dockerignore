@@ -1,0 +1,14 @@
+node_modules
+client
+.git
+.gitignore
+.env
+.env.example
+blood_donation.env
+postman
+.postman
+src
+Dockerfile
+docker-compose.yml
+README.md
+sync.js

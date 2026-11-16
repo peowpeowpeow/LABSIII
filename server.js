@@ -7,6 +7,7 @@ const cors = require('cors');
 const { sequelize, Donor } = require('./models');
 const connectMongo = require('./mongo/db');
 const { authenticate } = require('./middleware/auth');
+const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
@@ -23,6 +24,16 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+app.get('/health', async (req, res) => {
+    const mongo = mongoose.connection.readyState === 1 ? 'up' : 'down';
+    try {
+        await sequelize.authenticate();
+        res.json({ status: 'ok', postgres: 'up', mongo });
+    } catch (err) {
+        res.status(503).json({ status: 'error', postgres: 'down', mongo });
+    }
+});
 
 app.use('/auth', authRoutes);
 app.use('/profile', profileRoutes);
@@ -163,6 +174,9 @@ app.use((err, req, res, next) => {
     try {
         await sequelize.authenticate();
         console.log('PostgreSQL подключен');
+        
+        await sequelize.sync({ alter: true });
+        console.log('Таблицы синхронизированы');
     } catch (err) {
         console.error('Ошибка PostgreSQL:', err.message);
     }

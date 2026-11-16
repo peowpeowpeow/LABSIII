@@ -18,11 +18,7 @@
     "logging": false
   },
   "production": {
-    "username": "postgres",
-    "password": "root",
-    "database": "blood_donation",
-    "host": "127.0.0.1",
-    "port": 5432,
+    "use_env_variable": "DATABASE_URL",
     "dialect": "postgres",
     "logging": false
   }

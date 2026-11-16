@@ -2,28 +2,39 @@
 
 Курсовой проект: Node.js + Express + PostgreSQL (Sequelize) + MongoDB (Mongoose) + Socket.IO, клиент — React (Vite).
 
-## Лабораторная работа 7 — чат в реальном времени
+## Запуск в Docker (лабораторная работа 8)
 
-- Комнаты: «Общий чат», «РНПЦ трансфузиологии», «Гомельская ОСПК»
-- Уведомления о подключении и отключении, список участников
-- История сообщений в MongoDB, индикатор «печатает...»
-- Срочный запрос крови — уведомление всем подключённым
-- Подключение только с JWT, ограничение длины и частоты сообщений
+Нужен только Docker Desktop. Для РБ в Settings → Docker Engine добавить зеркала:
+"registry-mirrors": ["https://mirror.gcr.io", "https://dockerhub.timeweb.cloud"]
 
-## Запуск
+1. Скопировать `.env.example` в `.env` и заполнить POSTGRES_PASSWORD и JWT_SECRET.
+2. Собрать и запустить:
+   docker compose up --build
+3. Во втором терминале заполнить базы тестовыми данными:
+   docker compose exec backend npx sequelize-cli db:seed:all
+   docker compose exec backend node mongo/seed.js
+4. Зарегистрировать пользователя: POST http://localhost:3000/auth/register
+   с полями email и password (не менее 8 символов, заглавная буква и цифра).
+5. Открыть http://localhost.
 
-1. Установить PostgreSQL, создать базу `blood_donation`, параметры — в `config/config.json`.
-2. В корне проекта:
-   npm install
-   npx sequelize-cli db:migrate
-   npx sequelize-cli db:seed:all
-3. Скопировать `.env.example` в `.env` и указать строку подключения `MONGO_URI` (MongoDB Atlas или `mongodb://127.0.0.1:27017/blood_donation`).
-4. Запустить сервер: `npm run dev` (http://localhost:3000).
-5. В папке `client`: `npm install`, затем `npm run dev` (http://localhost:5173).
-6. Зарегистрировать пользователя: `POST /auth/register` с полями `email` и `password`
-   (не менее 8 символов, заглавная буква и цифра), войти и открыть вкладку «Чат».
-7. Для проверки чата открыть второе окно в режиме инкогнито и войти другим пользователем.
+| Сервис | Образ | Порт |
+|---|---|---|
+| frontend | React + nginx:1.27-alpine (reverse-proxy на backend) | 80 |
+| backend | node:22-alpine, server.js | 3000 |
+| postgres | postgres:16-alpine, том pgdata | — |
+| mongo | mongo:7, том mongodata | — |
+
+Проверка состояния: http://localhost:3000/health. Остановка: docker compose down
+(с флагом -v удаляются и данные баз).
+
+## Запуск без Docker
+
+1. PostgreSQL: база `blood_donation`, параметры — в `config/config.json`.
+2. В корне: npm install, npx sequelize-cli db:migrate, npx sequelize-cli db:seed:all.
+3. В `.env` указать MONGO_URI (Atlas или mongodb://127.0.0.1:27017/blood_donation).
+4. Сервер: npm run dev (http://localhost:3000).
+5. Клиент: в папке client — npm install, npm run dev (http://localhost:5173).
 
 ## Ветки
 
-lab21–lab27 — лабораторные работы 1–7.
+lab21–lab28 — лабораторные работы 1–8.
